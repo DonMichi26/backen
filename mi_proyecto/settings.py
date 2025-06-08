@@ -5,6 +5,10 @@ como seguridad, aplicaciones instaladas, base de datos, internacionalización, e
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # =========================
 # Rutas base del proyecto
@@ -15,13 +19,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Seguridad
 # =========================
 # ¡IMPORTANTE! Cambia esta clave en producción y mantenla en secreto
-SECRET_KEY = 'django-insecure-lk(8a$+jt3p6ehv6&q#su6af0moq^4-$g$e!oz_6rczzs37kn1'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # Activa el modo debug solo en desarrollo
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Lista de hosts permitidos para el despliegue
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if not DEBUG else []
 
 # =========================
 # Aplicaciones instaladas
@@ -138,4 +142,4 @@ REST_FRAMEWORK = {
 # =========================
 # Configuración de CORS
 # =========================
-CORS_ALLOW_ALL_ORIGINS = True  # Permitir todos los orígenes (solo para desarrollo)
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Solo permite todos los orígenes en desarrollo
