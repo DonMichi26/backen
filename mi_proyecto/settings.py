@@ -6,8 +6,10 @@ como seguridad, aplicaciones instaladas, base de datos, internacionalización, e
 
 from pathlib import Path
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
+# Cargar variables de entorno
 load_dotenv()
 
 # =========================
@@ -18,42 +20,38 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =========================
 # Seguridad
 # =========================
-# ¡IMPORTANTE! Cambia esta clave en producción y mantenla en secreto
-SECRET_KEY = os.getenv('SECRET_KEY')
-
-# Activa el modo debug solo en desarrollo
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-
-# Lista de hosts permitidos para el despliegue
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if not DEBUG else []
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-lk(8a$+jt3p6ehv6&q#su6af0moq^4-$g$e!oz_6rczzs37kn1')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # =========================
 # Aplicaciones instaladas
 # =========================
 INSTALLED_APPS = [
-    'django.contrib.admin',           # Panel de administración de Django
-    'django.contrib.auth',            # Sistema de autenticación
-    'django.contrib.contenttypes',    # Tipos de contenido
-    'django.contrib.sessions',        # Manejo de sesiones
-    'django.contrib.messages',        # Mensajes entre vistas
-    'django.contrib.staticfiles',     # Archivos estáticos (CSS, JS, imágenes)
-    'rest_framework',                 # Django REST Framework para APIs
-    'autenticacion',                  # Nuestra app personalizada de autenticación
-    'corsheaders',                    # Permitir peticiones CORS desde el frontend
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'autenticacion',
 ]
 
 # =========================
 # Middleware
 # =========================
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',                      # Middleware para CORS (debe ir al inicio)
-    'django.middleware.security.SecurityMiddleware',            # Seguridad
-    'django.contrib.sessions.middleware.SessionMiddleware',     # Manejo de sesiones
-    'django.middleware.common.CommonMiddleware',                # Funcionalidades comunes
-    'django.middleware.csrf.CsrfViewMiddleware',                # Protección CSRF
-    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Autenticación
-    'django.contrib.messages.middleware.MessageMiddleware',     # Mensajes
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',   # Protección contra clickjacking
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 # =========================
@@ -67,10 +65,11 @@ ROOT_URLCONF = 'mi_proyecto.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # Directorios adicionales para plantillas
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -89,8 +88,8 @@ WSGI_APPLICATION = 'mi_proyecto.wsgi.application'
 # =========================
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',  # Motor de base de datos
-        'NAME': BASE_DIR / 'db.sqlite3',         # Nombre del archivo de la base de datos
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -103,6 +102,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -115,15 +117,19 @@ AUTH_PASSWORD_VALIDATORS = [
 # =========================
 # Internacionalización
 # =========================
-LANGUAGE_CODE = 'es-es'  # Idioma en español
-TIME_ZONE = 'UTC'        # Zona horaria
-USE_I18N = True          # Habilita la internacionalización
-USE_TZ = True            # Habilita el uso de zonas horarias
+LANGUAGE_CODE = 'es-es'
+TIME_ZONE = 'America/Lima'
+USE_I18N = True
+USE_TZ = True
 
 # =========================
 # Archivos estáticos
 # =========================
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # =========================
 # Configuración por defecto para claves primarias
@@ -137,9 +143,55 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+}
+
+# Configuración de JWT
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
 # =========================
 # Configuración de CORS
 # =========================
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Solo permite todos los orígenes en desarrollo
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prueba de Autenticación JWT</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Sistema de Autenticación JWT</title>
     <style>
         /* ==========================================
            Estilos generales y configuración base
@@ -11,6 +12,12 @@
         body {
             font-family: Arial, sans-serif;
             background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* ==========================================
@@ -18,7 +25,7 @@
            ========================================== */
         .container {
             max-width: 400px;
-            margin: 60px auto;
+            width: 90%;
             background: #fff;
             padding: 30px;
             border-radius: 8px;
@@ -30,10 +37,18 @@
            ========================================== */
         input, button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 8px 0;
             border-radius: 4px;
             border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
         }
 
         button {
@@ -41,11 +56,17 @@
             color: #fff;
             border: none;
             cursor: pointer;
-            transition: background-color 0.3s ease; 
+            transition: background-color 0.3s ease;
+            font-weight: bold;
         }
 
         button:hover {
             background: #1565c0;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
 
         /* ==========================================
@@ -53,8 +74,37 @@
            ========================================== */
         .respuesta {
             margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
             border-radius: 4px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .success {
+            color: #28a745;
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        /* ==========================================
+           Utilidades
+           ========================================== */
+        .separator {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #dee2e6;
+        }
+
+        h2 {
+            color: #1976d2;
+            margin-bottom: 20px;
+            text-align: center;
         }
     </style>
 </head>
@@ -63,12 +113,14 @@
     <div class="container">
         <!-- Sección de autenticación -->
         <h2>Iniciar Sesión</h2>
-        <input type="text" id="username" placeholder="Usuario" />
-        <input type="password" id="password" placeholder="Contraseña" />
-        <button onclick="login()">Login</button>
+        <form id="loginForm" onsubmit="event.preventDefault(); login();">
+            <input type="text" id="username" placeholder="Usuario" required />
+            <input type="password" id="password" placeholder="Contraseña" required />
+            <button type="submit">Iniciar Sesión</button>
+        </form>
         
         <!-- Separador visual -->
-        <hr>
+        <hr class="separator">
         
         <!-- Sección de acceso a recursos protegidos -->
         <button onclick="accederProtegido()">Acceder a endpoint protegido</button>
