@@ -5,73 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prueba de Autenticación JWT</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f0f2f5; }
-        .container { max-width: 400px; margin: 60px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; }
-        button { background: #1976d2; color: #fff; border: none; cursor: pointer; }
-        button:hover { background: #1565c0; }
-        .respuesta { margin-top: 20px; }
+        /* ==========================================
+           Estilos generales y configuración base
+           ========================================== */
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+        }
+
+        /* ==========================================
+           Layout y estructura principal
+           ========================================== */
+        .container {
+            max-width: 400px;
+            margin: 60px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* ==========================================
+           Componentes de formulario
+           ========================================== */
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease; 
+        }
+
+        button:hover {
+            background: #1565c0;
+        }
+
+        /* ==========================================
+           Componentes de respuesta
+           ========================================== */
+        .respuesta {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
+    <!-- Contenedor principal de la aplicación -->
     <div class="container">
+        <!-- Sección de autenticación -->
         <h2>Iniciar Sesión</h2>
         <input type="text" id="username" placeholder="Usuario" />
         <input type="password" id="password" placeholder="Contraseña" />
         <button onclick="login()">Login</button>
+        
+        <!-- Separador visual -->
         <hr>
+        
+        <!-- Sección de acceso a recursos protegidos -->
         <button onclick="accederProtegido()">Acceder a endpoint protegido</button>
+        
+        <!-- Área de visualización de respuestas -->
         <div class="respuesta" id="respuesta"></div>
     </div>
-    <script>
-        let accessToken = '';
-        // Función para hacer login y obtener el token
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            fetch('http://localhost:8000/api/v1/login-json/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Error HTTP: ' + res.status + ' ' + res.statusText);
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log(data); // Mostrar la respuesta en consola para depuración
-                if (data.access) {
-                    localStorage.setItem('accessToken', data.access);
-                    accessToken = localStorage.getItem('accessToken');
-                    document.getElementById('respuesta').innerText = 'Login exitoso. Token guardado.';
-                } else {
-                    document.getElementById('respuesta').innerText = 'Error en login: ' + (data.detail || JSON.stringify(data));
-                }
-            })
-            .catch(err => {
-                document.getElementById('respuesta').innerText = 'Error de red o CORS: ' + err;
-            });
-        }
-        // Función para acceder al endpoint protegido
-        function accederProtegido() {
-            if (!accessToken) {
-                document.getElementById('respuesta').innerText = 'Primero haz login para obtener el token.';
-                return;
-            }
-            fetch('http://localhost:8000/api/v1/protegido/', {
-                method: 'GET',
-                headers: { 'Authorization': 'Bearer ' + accessToken }
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('respuesta').innerText = 'Respuesta del backend: ' + JSON.stringify(data);
-            })
-            .catch(err => {
-                document.getElementById('respuesta').innerText = 'Error de red: ' + err;
-            });
-        }
-    </script>
+
+    <!-- Inclusión del script de funcionalidad -->
+    <script src="script.js"></script>
 </body>
-</html> 
+</html>
