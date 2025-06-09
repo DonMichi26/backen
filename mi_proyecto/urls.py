@@ -5,6 +5,10 @@ Define las rutas principales del proyecto y enlaza las URLs de las aplicaciones.
 
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     # Ruta para acceder al panel de administración de Django

@@ -20,8 +20,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.settings import api_settings
+from django.contrib.auth.models import User
+from django.db import connection
 
-# Ruta al archivo JSON de usuarios
+# Configuración del archivo de usuarios
 USUARIOS_JSON = os.path.join(os.path.dirname(__file__), 'usuarios.json')
 
 def leer_usuarios():
@@ -44,6 +46,10 @@ def escribir_usuarios(usuarios):
 # Create your views here.
 
 class CookieJWTAuthentication(JWTAuthentication):
+    """
+    Autenticación personalizada que permite obtener el token JWT desde las cookies.
+    Útil para aplicaciones web donde el frontend y backend están en dominios diferentes.
+    """
     def get_header(self, request):
         header = super().get_header(request)
         if header is None:
@@ -64,11 +70,12 @@ class CookieJWTAuthentication(JWTAuthentication):
 # Vista protegida que solo permite el acceso a usuarios autenticados con un token válido
 class PruebaProtegida(APIView):
     """
-    Vista de prueba que requiere autenticación.
-    Solo permite el acceso a usuarios autenticados con un token válido.
+    Endpoint protegido que requiere autenticación.
+    Ejemplo de uso: GET /protegido/
+    Requiere: Token JWT válido en las cookies
+    Retorna: Mensaje de bienvenida con el nombre del usuario
     """
-    # Solo usuarios autenticados pueden acceder a esta vista
-    authentication_classes = [CookieJWTAuthentication] # Usar nuestra clase personalizada
+    authentication_classes = [CookieJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     # Método GET que retorna un mensaje si el usuario tiene un token válido
@@ -81,27 +88,43 @@ class PruebaProtegida(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginJSON(APIView):
-    authentication_classes = [] # No requiere autenticación
-    permission_classes = []   # Permite acceso a cualquiera
     """
-    Vista para el login usando autenticación basada en JSON.
-    Permite a los usuarios iniciar sesión y obtener un token.
+    Endpoint para autenticación de usuarios.
+    Ejemplo de uso: POST /login-json/
+    Requiere: username y password en el body
+    Retorna: Cookie con token JWT si las credenciales son válidas
     """
+    authentication_classes = []
+    permission_classes = []
+
     def post(self, request):
-        """
-        Maneja las peticiones POST para el login.
-        Verifica las credenciales y retorna un token si son válidas.
-        """
         data = request.data
-        print(f"Datos recibidos en LoginJSON: {data}")
         username = data.get('username')
         password = data.get('password')
-        print(f"Username: {username}, Password: {password}")
+        
+        # Verificar si el usuario existe
+        try:
+            user = User.objects.get(username=username)
+            user_exists = True
+            is_active = user.is_active
+        except User.DoesNotExist:
+            user_exists = False
+            is_active = False
+        
+        # Intentar autenticar
         user = authenticate(username=username, password=password)
+        
         if user is not None:
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
-            response = Response({'mensaje': 'Login exitoso'}, status=status.HTTP_200_OK)
+            response = Response({
+                'mensaje': 'Login exitoso',
+                'debug_info': {
+                    'user_exists': user_exists,
+                    'is_active': is_active,
+                    'auth_success': True
+                }
+            }, status=status.HTTP_200_OK)
             response.set_cookie(
                 key='access_token',
                 value=access_token,
@@ -111,13 +134,23 @@ class LoginJSON(APIView):
                 max_age=60*60
             )
             return response
-        return Response({'mensaje': 'Credenciales incorrectas'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        return Response({
+            'mensaje': 'Credenciales incorrectas',
+            'debug_info': {
+                'user_exists': user_exists,
+                'is_active': is_active,
+                'auth_success': False
+            }
+        }, status=status.HTTP_401_UNAUTHORIZED)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class RegistroJSON(APIView):
     """
-    Vista para el registro de nuevos usuarios.
-    Permite crear nuevas cuentas de usuario.
+    Endpoint para registro de nuevos usuarios.
+    Ejemplo de uso: POST /registro-json/
+    Requiere: username y password en el body
+    Retorna: Mensaje de éxito o error
     """
     def post(self, request):
         """
@@ -135,3 +168,52 @@ class RegistroJSON(APIView):
         usuarios.append({'username': username, 'password': password})
         escribir_usuarios(usuarios)
         return Response({'mensaje': 'Usuario registrado correctamente'}, status=status.HTTP_201_CREATED)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class VerificarDB(APIView):
+    """
+    Endpoint para verificar la conexión a la base de datos.
+    Ejemplo de uso: GET /verificar-db/
+    Retorna: Información sobre la conexión y usuarios en la base de datos
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        try:
+            # Verificar la conexión a la base de datos
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT VERSION()")
+                db_version = cursor.fetchone()[0]
+
+            # Obtener información de usuarios
+            usuarios = User.objects.all()
+            usuarios_info = []
+            
+            for user in usuarios:
+                # Intentar autenticar al usuario para verificar su contraseña
+                auth_result = authenticate(username=user.username, password='nekolu26')
+                usuarios_info.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_active': user.is_active,
+                    'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+                    'password_hash': user.password[:50] + '...',  # Mostrar parte del hash
+                    'auth_test': 'OK' if auth_result else 'FAIL'
+                })
+
+            return Response({
+                'mensaje': 'Conexión exitosa a la base de datos',
+                'db_version': db_version,
+                'db_name': settings.DATABASES['default']['NAME'],
+                'db_host': settings.DATABASES['default']['HOST'],
+                'usuarios': usuarios_info,
+                'total_usuarios': len(usuarios_info)
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'mensaje': 'Error al conectar con la base de datos',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
