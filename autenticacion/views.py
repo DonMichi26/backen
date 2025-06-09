@@ -92,7 +92,7 @@ class LoginJSON(APIView):
     Endpoint para autenticación de usuarios.
     Ejemplo de uso: POST /login-json/
     Requiere: username y password en el body
-    Retorna: Cookie con token JWT si las credenciales son válidas
+    Retorna: Token JWT si las credenciales son válidas
     """
     authentication_classes = []
     permission_classes = []
@@ -117,22 +117,38 @@ class LoginJSON(APIView):
         if user is not None:
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+            
             response = Response({
                 'mensaje': 'Login exitoso',
+                'access_token': access_token,
+                'refresh_token': refresh_token,
                 'debug_info': {
                     'user_exists': user_exists,
                     'is_active': is_active,
                     'auth_success': True
                 }
             }, status=status.HTTP_200_OK)
+            
+            # Configurar cookies con tokens
             response.set_cookie(
                 key='access_token',
                 value=access_token,
                 httponly=True,
                 samesite='Lax',
                 secure=not settings.DEBUG,
-                max_age=60*60
+                max_age=600  # 10 minutos en segundos
             )
+            
+            response.set_cookie(
+                key='refresh_token',
+                value=refresh_token,
+                httponly=True,
+                samesite='Lax',
+                secure=not settings.DEBUG,
+                max_age=604800  # 7 días en segundos
+            )
+            
             return response
             
         return Response({
