@@ -1,93 +1,123 @@
-# Proyecto de Autenticación JWT con Django
+# Sistema de Autenticación JWT con Django
 
-## 📋 Descripción
-Este proyecto implementa un sistema de autenticación utilizando JWT (JSON Web Tokens) con Django en el backend y una interfaz web simple en el frontend.
+Este proyecto implementa un sistema de autenticación usando JWT (JSON Web Tokens) con Django y Django REST Framework.
 
-## 🚀 Características
+## Características
+
 - Autenticación basada en JWT
 - Endpoints protegidos
-- Interfaz de usuario simple y responsive
-- Almacenamiento seguro de tokens
+- Sistema de registro de usuarios
+- Frontend simple para pruebas
+- Integración con MySQL
+- Manejo de CORS
 
-## 🛠️ Tecnologías Utilizadas
-- **Backend**: Django, Django REST Framework
-- **Frontend**: HTML, CSS, JavaScript
-- **Base de Datos**: SQLite
-- **Autenticación**: JWT (JSON Web Tokens)
 
-## 📦 Instalación
+. Crear y activar entorno virtual:
+```bash
+python -m venv venv
+source venv/bin/activate  # En Windows: venv\Scripts\activate
+```
 
-### Requisitos Previos
-- Python 3.8 o superior
-- pip (gestor de paquetes de Python)
-- Entorno virtual (recomendado)
+. Instalar dependencias:
+```bash
+pip install -r requirements.txt
+```
 
-### Pasos de Instalación
-1. Clonar el repositorio:
-   ```bash
-   git clone [URL_DEL_REPOSITORIO]
-   cd backen
-   ```
+. Configurar la base de datos:
+- Crear una base de datos MySQL llamada 'backend'
+- Configurar las credenciales en `mi_proyecto/settings.py`
 
-2. Crear y activar entorno virtual:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # En Windows: venv\Scripts\activate
-   ```
+. Aplicar migraciones:
+```bash
+python manage.py migrate
+```
 
-3. Instalar dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
+. Crear superusuario:
+```bash
+python manage.py createsuperuser
+```
 
-4. Aplicar migraciones:
-   ```bash
-   python manage.py migrate
-   ```
+## Uso
 
-5. Crear superusuario (opcional):
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-## 🚀 Uso
-
-### Iniciar el Servidor
+1. Iniciar el servidor:
 ```bash
 python manage.py runserver
 ```
 
-### Acceder a la Aplicación
-1. Abrir `frontend.html` en el navegador
-2. Iniciar sesión con las credenciales
-3. Usar el token JWT para acceder a endpoints protegidos
+2. Acceder a los endpoints:
+- Panel de administración: http://127.0.0.1:8000/admin/
+- API de autenticación: http://127.0.0.1:8000/api/v1/login/
+- API de autenticación JSON: http://127.0.0.1:8000/api/v1/login-json/
+- Endpoint protegido: http://127.0.0.1:8000/api/v1/protegido/
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
+
 ```
-backen/
-├── manage.py
-├── mi_proyecto/
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── autenticacion/
-│   ├── views.py
-│   └── urls.py
-├── frontend.html
-└── script.js
+backend/
+├── mi_proyecto/           # Configuración principal de Django
+├── autenticacion/         # Aplicación de autenticación
+│   ├── views.py          # Vistas de la API
+│   ├── urls.py           # Rutas de la API
+│   └── usuarios.json     # Almacenamiento de usuarios
+├── static/               # Archivos estáticos
+├── templates/            # Plantillas HTML
+├── manage.py            # Script de administración
+└── requirements.txt     # Dependencias
 ```
 
-## 🔒 Endpoints API
-- `POST /api/v1/login-json/`: Autenticación y obtención de token
-- `GET /api/v1/protegido/`: Endpoint protegido que requiere token JWT
+## Endpoints de la API
 
-## 👥 Contribución
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+### Autenticación
 
-## 📝 Licencia
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
+- `POST /api/v1/login/`
+  - Autenticación JWT
+  - Body: `{"username": "usuario", "password": "contraseña"}`
+  - Retorna: `{"access": "token", "refresh": "token"}`
+
+- `POST /api/v1/login-json/`
+  - Autenticación simple
+  - Body: `{"username": "usuario", "password": "contraseña"}`
+  - Retorna: `{"access": "token", "mensaje": "Login exitoso"}`
+
+### Registro
+
+- `POST /api/v1/registro-json/`
+  - Registro de usuarios
+  - Body: `{"username": "usuario", "password": "contraseña"}`
+  - Retorna: `{"mensaje": "Usuario registrado correctamente"}`
+
+### Endpoints Protegidos
+
+- `GET /api/v1/protegido/`
+  - Requiere token JWT
+  - Header: `Authorization: Bearer <token>`
+  - Retorna: `{"mensaje": "¡Acceso concedido!"}`
+
+## Desarrollo
+
+### Frontend
+
+El frontend incluye:
+- Formulario de login
+- Manejo de tokens JWT
+- Acceso a endpoints protegidos
+- Manejo de errores
+
+### Backend
+
+El backend implementa:
+- Autenticación JWT
+- Protección de rutas
+- Validación de usuarios
+- Almacenamiento seguro de contraseñas
+
+## Seguridad
+
+- Tokens JWT con tiempo de expiración
+- Protección CSRF
+- Validación de contraseñas
+- Headers de seguridad
+- CORS configurado
+
+
 

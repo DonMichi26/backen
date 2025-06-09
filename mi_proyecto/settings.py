@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'autenticacion',
+    'mi_proyecto',
 ]
 
 # =========================
