@@ -22,6 +22,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.settings import api_settings
 from django.contrib.auth.models import User
 from django.db import connection
+from .models import Usuario
 
 # Configuración del archivo de usuarios
 USUARIOS_JSON = os.path.join(os.path.dirname(__file__), 'usuarios.json')
@@ -92,7 +93,7 @@ class LoginJSON(APIView):
     Endpoint para autenticación de usuarios.
     Ejemplo de uso: POST /login-json/
     Requiere: username y password en el body
-    Retorna: Token JWT si las credenciales son válidas
+    Retorna: Token JWT y redirección al dashboard si las credenciales son válidas
     """
     authentication_classes = []
     permission_classes = []
@@ -102,19 +103,23 @@ class LoginJSON(APIView):
         username = data.get('username')
         password = data.get('password')
         
-        # Verificar si el usuario existe
+        print(f"Intentando login con usuario: {username}")  # Debug log
+        
         try:
-            user = User.objects.get(username=username)
-            user_exists = True
-            is_active = user.is_active
-        except User.DoesNotExist:
-            user_exists = False
-            is_active = False
-        
-        # Intentar autenticar
-        user = authenticate(username=username, password=password)
-        
-        if user is not None:
+            # Buscar usuario en la tabla personalizada
+            usuario = Usuario.objects.get(username=username, password_hash=password)
+            print(f"Usuario encontrado: {usuario.username}")  # Debug log
+            
+            # Crear o obtener usuario de Django
+            user, created = User.objects.get_or_create(
+                username=usuario.username,
+                defaults={
+                    'email': usuario.email,
+                    'is_active': True
+                }
+            )
+            
+            # Generar tokens JWT
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
@@ -123,10 +128,10 @@ class LoginJSON(APIView):
                 'mensaje': 'Login exitoso',
                 'access_token': access_token,
                 'refresh_token': refresh_token,
-                'debug_info': {
-                    'user_exists': user_exists,
-                    'is_active': is_active,
-                    'auth_success': True
+                'redirect_url': '/api/v1/dashboard/',
+                'user': {
+                    'username': usuario.username,
+                    'email': usuario.email
                 }
             }, status=status.HTTP_200_OK)
             
@@ -151,14 +156,18 @@ class LoginJSON(APIView):
             
             return response
             
-        return Response({
-            'mensaje': 'Credenciales incorrectas',
-            'debug_info': {
-                'user_exists': user_exists,
-                'is_active': is_active,
-                'auth_success': False
-            }
-        }, status=status.HTTP_401_UNAUTHORIZED)
+        except Usuario.DoesNotExist:
+            print(f"Usuario no encontrado: {username}")  # Debug log
+            return Response({
+                'mensaje': 'Credenciales incorrectas',
+                'detalles': 'Usuario o contraseña inválidos'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            print(f"Error durante el login: {str(e)}")  # Debug log
+            return Response({
+                'mensaje': 'Error en el servidor',
+                'detalles': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class RegistroJSON(APIView):
@@ -233,3 +242,33 @@ class VerificarDB(APIView):
                 'mensaje': 'Error al conectar con la base de datos',
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class Dashboard(APIView):
+    """
+    Endpoint para el dashboard del usuario.
+    Ejemplo de uso: GET /dashboard/
+    Requiere: Token JWT válido
+    Retorna: Información del dashboard
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'mensaje': 'Bienvenido al dashboard',
+            'usuario': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'last_login': user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else None,
+                'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S')
+            },
+            'estadisticas': {
+                'total_usuarios': User.objects.count(),
+                'usuarios_activos': User.objects.filter(is_active=True).count(),
+                'usuarios_staff': User.objects.filter(is_staff=True).count()
+            }
+        }, status=status.HTTP_200_OK)
